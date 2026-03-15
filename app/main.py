@@ -33,6 +33,7 @@ from app.privacy.sanitizer import sanitize_text
 from app.scanner.folder_scanner import scan_folder
 from app.storage.sqlite_store import init_db, save_fingerprint
 from app.summarize.ai_summarizer import generate_sanitized_summary
+from app.utils.text_utils import extract_keywords, guess_language
 
 
 def sha256_file(path: Path) -> str:
@@ -70,23 +71,28 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
     file_hash = sha256_file(file_path)
     parse_result = parse_file(file_path)
 
-    sanitized = sanitize_text(parse_result["text"])
-    classification = classify_with_rules(sanitized["sanitized_text"])
+    raw_text = parse_result["text"]
+    sanitized = sanitize_text(raw_text)
+    sanitized_text = sanitized["sanitized_text"]
+
+    classification = classify_with_rules(sanitized_text)
 
     if classification["label"] == "unknown" or classification["confidence"] < 0.75:
-        classification = classify_with_ai_fallback(sanitized["sanitized_text"])
+        classification = classify_with_ai_fallback(sanitized_text)
 
-    extracted_fields = extract_fields_by_regex(sanitized["sanitized_text"], classification["label"])
+    extracted_fields = extract_fields_by_regex(sanitized_text, classification["label"])
     if not extracted_fields:
-        extracted_fields = extract_fields_with_ai_fallback(sanitized["sanitized_text"], classification["label"])
+        extracted_fields = extract_fields_with_ai_fallback(sanitized_text, classification["label"])
 
-    summary = generate_sanitized_summary(sanitized["sanitized_text"], classification["label"])
+    summary = generate_sanitized_summary(sanitized_text, classification["label"])
+    keywords = extract_keywords(sanitized_text)
+    language = guess_language(sanitized_text)
 
     scores = compute_confidence(
         classification_confidence=classification["confidence"],
         extraction_fields_count=len(extracted_fields),
         ocr_used=parse_result["ocr_used"],
-        text_length=len(parse_result["text"]),
+        text_length=len(raw_text),
     )
 
     exact_duplicate = file_hash in seen_hashes
@@ -99,6 +105,10 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
         risk_flags.append("contains_pii")
     if classification["label"] in {"invoice", "receipt", "bank_statement", "tax_document"}:
         risk_flags.append("contains_financial_data")
+    if classification["label"] == "unknown":
+        risk_flags.append("unknown_document_type")
+    if parse_result["ocr_needed"] and not parse_result["ocr_used"]:
+        risk_flags.append("ocr_recommended")
     if exact_duplicate:
         risk_flags.append("duplicate_file")
 
@@ -115,7 +125,7 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
         ),
         metadata=MetadataInfo(
             page_count=parse_result["page_count"],
-            language=None,
+            language=language,
             author_safe=parse_result["author_safe"],
             embedded_metadata=parse_result["embedded_metadata"],
         ),
@@ -139,7 +149,7 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
         ),
         sanitized_summary=summary,
         document_specific_fields=extracted_fields,
-        keywords=[],
+        keywords=keywords,
         title_sanitized=file_path.stem,
         parse_status="success",
     )
@@ -190,7 +200,10 @@ def main() -> None:
             print("=" * 80)
             print(f"FILE: {fp.file_info.full_path}")
             print(f"CLASS: {fp.classification.label} ({fp.classification.confidence})")
+            print(f"LANGUAGE: {fp.metadata.language}")
+            print(f"KEYWORDS: {fp.keywords[:5]}")
             print(f"PII: {fp.privacy.pii_detected} | TYPES: {fp.privacy.pii_types}")
+            print(f"RISK FLAGS: {fp.risk.risk_flags}")
             print(f"REVIEW: {fp.review.human_review_required}")
             print(f"SUMMARY: {fp.sanitized_summary}\n")
         except Exception as exc:
