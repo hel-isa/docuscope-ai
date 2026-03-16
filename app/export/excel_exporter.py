@@ -1,15 +1,33 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
 from app.models.fingerprint import DocumentFingerprint
 
 
+ILLEGAL_EXCEL_CHARS_RE = re.compile(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]")
+
+
+def clean_excel_value(value: Any) -> Any:
+    """
+    Remove characters that Excel/openpyxl does not allow in worksheet cells.
+    """
+    if isinstance(value, str):
+        return ILLEGAL_EXCEL_CHARS_RE.sub("", value)
+    return value
+
+
+def clean_excel_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {key: clean_excel_value(value) for key, value in row.items()}
+
+
 def flatten_fingerprint(f: DocumentFingerprint) -> dict:
-    return {
+    row = {
         "document_id": f.document_id,
         "file_name": f.file_info.file_name,
         "full_path": f.file_info.full_path,
@@ -47,6 +65,7 @@ def flatten_fingerprint(f: DocumentFingerprint) -> dict:
         "parse_status": f.parse_status,
         "error_message_safe": f.error_message_safe,
     }
+    return clean_excel_row(row)
 
 
 def export_fingerprints_excel(fingerprints: list[DocumentFingerprint], output_dir: str | Path) -> Path:
@@ -55,6 +74,9 @@ def export_fingerprints_excel(fingerprints: list[DocumentFingerprint], output_di
 
     rows = [flatten_fingerprint(f) for f in fingerprints]
     df = pd.DataFrame(rows)
+
+    # Extra safety: clean all string cells again at dataframe level
+    df = df.applymap(clean_excel_value)
 
     file_path = out_dir / "document_report.xlsx"
     df.to_excel(file_path, index=False)
