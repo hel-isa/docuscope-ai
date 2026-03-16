@@ -119,8 +119,8 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
             file_extension=file_path.suffix.lower(),
             mime_type=guess_mime(file_path),
             file_size_bytes=stat.st_size,
-            created_at_fs=datetime.fromtimestamp(stat.st_ctime),
-            modified_at_fs=datetime.fromtimestamp(stat.st_mtime),
+            created_at_fs=datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S"),
+            modified_at_fs=datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
             sha256_hash=file_hash,
         ),
         metadata=MetadataInfo(
