@@ -1,0 +1,16 @@
+# .github/CODEOWNERS
+
+# Default owner for everything
+* @hel-isa
+
+# App code
+/app/ @hel-isa
+
+# Tests
+/tests/ @hel-isa
+
+# GitHub workflows
+/.github/workflows/ @hel-isa
+
+# Docs and policies
+*.md @hel-isa
