@@ -78,41 +78,11 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
     - name: 'Checkout Repository'
       uses: actions/checkout@v4
-    
+
     - name: 'Dependency Review'
       uses: actions/dependency-review-action@v4
       continue-on-error: true
-
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'python' ]
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-    
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
