@@ -5,6 +5,8 @@
 
 # App code
 /app/ @hel-isa
+/app/privacy/ @hel-isa
+SECURITY.md @hel-isa
 
 # Tests
 /tests/ @hel-isa
