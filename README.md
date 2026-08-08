@@ -1,5 +1,10 @@
 # DocuScope AI
 
+[![Tests](https://github.com/hel-isa/docuscope-ai/actions/workflows/tests.yml/badge.svg)](...)
+[![Security Scanning](https://github.com/hel-isa/docuscope-ai/actions/workflows/security.yml/badge.svg)](...)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
+
 **Privacy-first hybrid AI document fingerprinting**
 
 DocuScope AI is a local-first document intelligence project that scans folders and subfolders, processes multiple file types, extracts useful document signals, masks sensitive data, and generates **sanitized document fingerprints** for reporting and review.
