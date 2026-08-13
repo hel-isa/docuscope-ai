@@ -14,14 +14,14 @@ class TestFileInfo:
     def test_create_file_info(self):
         file_info = FileInfo(
             file_name="test.pdf",
-            full_path="/path/to/test.pdf",
+            relative_path="path/to/test.pdf",
             file_extension=".pdf",
             mime_type="application/pdf",
             file_size_bytes=1024,
             sha256_hash="abc123",
         )
         assert file_info.file_name == "test.pdf"
-        assert file_info.full_path == "/path/to/test.pdf"
+        assert file_info.relative_path == "path/to/test.pdf"
         assert file_info.file_extension == ".pdf"
         assert file_info.mime_type == "application/pdf"
         assert file_info.file_size_bytes == 1024
@@ -34,7 +34,7 @@ class TestFileInfo:
         modified = datetime(2023, 1, 2, 12, 0, 0)
         file_info = FileInfo(
             file_name="test.pdf",
-            full_path="/path/to/test.pdf",
+            relative_path="path/to/test.pdf",
             file_extension=".pdf",
             mime_type="application/pdf",
             file_size_bytes=1024,

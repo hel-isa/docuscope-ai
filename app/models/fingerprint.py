@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class FileInfo(BaseModel):
     file_name: str
-    full_path: str
+    relative_path: str
     file_extension: str
     mime_type: str
     file_size_bytes: int
