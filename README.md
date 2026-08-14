@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/hel-isa/docuscope-ai/actions/workflows/tests.yml/badge.svg)](...)
 [![Security Scanning](https://github.com/hel-isa/docuscope-ai/actions/workflows/security.yml/badge.svg)](...)
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue)]()
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 **Privacy-first hybrid AI document fingerprinting**

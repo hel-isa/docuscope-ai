@@ -43,7 +43,7 @@ Please review these resources before contributing:
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.11 or higher
 - Git
 - macOS, Linux, or Windows (with WSL2 recommended)
 
