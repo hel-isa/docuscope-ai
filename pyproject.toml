@@ -38,21 +38,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = [
-    "PyPDF2>=3.0.0,<4.0.0",
-    "python-docx>=0.8.11,<1.0.0",
-    "openpyxl>=3.9.0,<4.0.0",
-    "Pillow>=9.0.0,<10.0.0",
-    "pytesseract>=0.3.10,<1.0.0",
-    "streamlit>=1.20.0,<2.0.0",
-    "pandas>=1.5.0,<3.0.0",
-    "numpy>=1.23.0,<2.0.0",
-    "requests>=2.28.0,<3.0.0",
-]
+dynamic = ["dependencies"]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0,<8.0",
     "pytest-cov>=4.0,<5.0",
     "flake8>=5.0,<6.0",
     "black>=23.0,<24.0",
@@ -70,6 +59,9 @@ Repository = "https://github.com/hel-isa/docuscope-ai.git"
 
 [tool.setuptools]
 packages = ["app"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [tool.black]
 line-length = 100

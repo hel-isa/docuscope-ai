@@ -15,12 +15,10 @@ Security fixes are applied on a best-effort basis to the default branch.
 
 Please **do not report security vulnerabilities through public GitHub issues**.
 
-Instead, please report them privately using one of these methods:
-
-- **GitHub Security Advisories / Private vulnerability reporting** (preferred, if enabled)
-- **Email:** `security@yourdomain.com`
-
-If private reporting is not yet configured, please set it up in the repository’s **Security** tab and use that as the main reporting channel.
+Instead, please report them privately through **GitHub Security Advisories**
+(private vulnerability reporting): open the repository's **Security** tab
+→ **Report a vulnerability**. This creates a private advisory visible only
+to the maintainer until a fix is ready.
 
 When submitting a report, please include:
 

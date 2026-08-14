@@ -16,7 +16,7 @@ def init_db(db_path: str | Path) -> None:
         CREATE TABLE IF NOT EXISTS documents (
             document_id TEXT PRIMARY KEY,
             file_name TEXT,
-            full_path TEXT,
+            relative_path TEXT,
             file_extension TEXT,
             sha256_hash TEXT,
             classification_label TEXT,
@@ -44,7 +44,7 @@ def save_fingerprint(db_path: str | Path, fingerprint: DocumentFingerprint) -> N
         INSERT OR REPLACE INTO documents (
             document_id,
             file_name,
-            full_path,
+            relative_path,
             file_extension,
             sha256_hash,
             classification_label,
@@ -60,7 +60,7 @@ def save_fingerprint(db_path: str | Path, fingerprint: DocumentFingerprint) -> N
         (
             fingerprint.document_id,
             fingerprint.file_info.file_name,
-            fingerprint.file_info.full_path,
+            fingerprint.file_info.relative_path,
             fingerprint.file_info.file_extension,
             fingerprint.file_info.sha256_hash,
             fingerprint.classification.label,

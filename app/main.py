@@ -66,10 +66,13 @@ def parse_file(file_path: Path) -> dict:
     raise ValueError(f"Unsupported extension: {ext}")
 
 
-def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentFingerprint:
+def build_fingerprint(
+    file_path: Path, seen_hashes: dict[str, str], root_folder: Path
+) -> DocumentFingerprint:
     stat = file_path.stat()
     file_hash = sha256_file(file_path)
     parse_result = parse_file(file_path)
+    relative_path = str(file_path.resolve().relative_to(root_folder.resolve()))
 
     raw_text = parse_result["text"]
     sanitized = sanitize_text(raw_text)
@@ -98,7 +101,7 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
     exact_duplicate = file_hash in seen_hashes
     exact_duplicate_of = seen_hashes.get(file_hash)
     if not exact_duplicate:
-        seen_hashes[file_hash] = str(file_path)
+        seen_hashes[file_hash] = relative_path
 
     risk_flags = []
     if sanitized["pii_detected"]:
@@ -115,7 +118,7 @@ def build_fingerprint(file_path: Path, seen_hashes: dict[str, str]) -> DocumentF
     fingerprint = DocumentFingerprint(
         file_info=FileInfo(
             file_name=file_path.name,
-            full_path=str(file_path.resolve()),
+            relative_path=relative_path,
             file_extension=file_path.suffix.lower(),
             mime_type=guess_mime(file_path),
             file_size_bytes=stat.st_size,
@@ -178,6 +181,7 @@ def main() -> None:
     parser.add_argument("--sqlite", action="store_true", help="Store results in SQLite")
     args = parser.parse_args()
 
+    root_folder = Path(args.input)
     files = scan_folder(args.input)
     print(f"Found {len(files)} supported files.\n")
 
@@ -191,14 +195,14 @@ def main() -> None:
 
     for file_path in files:
         try:
-            fp = build_fingerprint(file_path, seen_hashes)
+            fp = build_fingerprint(file_path, seen_hashes, root_folder)
             fingerprints.append(fp)
             export_fingerprint_json(fp, args.output)
             if args.sqlite:
                 save_fingerprint(db_path, fp)
 
             print("=" * 80)
-            print(f"FILE: {fp.file_info.full_path}")
+            print(f"FILE: {fp.file_info.relative_path}")
             print(f"CLASS: {fp.classification.label} ({fp.classification.confidence})")
             print(f"LANGUAGE: {fp.metadata.language}")
             print(f"KEYWORDS: {fp.keywords[:5]}")

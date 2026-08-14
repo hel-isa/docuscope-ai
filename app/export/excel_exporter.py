@@ -30,7 +30,7 @@ def flatten_fingerprint(f: DocumentFingerprint) -> dict:
     row = {
         "document_id": f.document_id,
         "file_name": f.file_info.file_name,
-        "full_path": f.file_info.full_path,
+        "relative_path": f.file_info.relative_path,
         "file_extension": f.file_info.file_extension,
         "mime_type": f.file_info.mime_type,
         "file_size_bytes": f.file_info.file_size_bytes,
