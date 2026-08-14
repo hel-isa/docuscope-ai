@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from docx import Document
 from openpyxl import Workbook
@@ -21,7 +20,7 @@ class _FakePdfPage:
 
 
 class _FakePdfReader:
-    def __init__(self, _path: str, text: str, metadata: Optional[dict] = None) -> None:
+    def __init__(self, _path: str, text: str, metadata: dict | None = None) -> None:
         self.pages = [_FakePdfPage(text)]
         self.metadata = metadata or {}
 

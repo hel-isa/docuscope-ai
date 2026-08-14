@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -13,15 +13,15 @@ class FileInfo(BaseModel):
     file_extension: str
     mime_type: str
     file_size_bytes: int
-    created_at_fs: Optional[datetime] = None
-    modified_at_fs: Optional[datetime] = None
+    created_at_fs: datetime | None = None
+    modified_at_fs: datetime | None = None
     sha256_hash: str
 
 
 class MetadataInfo(BaseModel):
-    page_count: Optional[int] = None
-    language: Optional[str] = None
-    author_safe: Optional[str] = None
+    page_count: int | None = None
+    language: str | None = None
+    author_safe: str | None = None
     embedded_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -48,7 +48,7 @@ class ClassificationInfo(BaseModel):
 
 class DuplicateInfo(BaseModel):
     exact_duplicate: bool = False
-    exact_duplicate_of: Optional[str] = None
+    exact_duplicate_of: str | None = None
 
 
 class RiskInfo(BaseModel):
@@ -65,7 +65,7 @@ class ConfidenceInfo(BaseModel):
 
 class ReviewInfo(BaseModel):
     human_review_required: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class DocumentFingerprint(BaseModel):
@@ -81,8 +81,8 @@ class DocumentFingerprint(BaseModel):
     classification: ClassificationInfo = Field(default_factory=ClassificationInfo)
 
     keywords: list[str] = Field(default_factory=list)
-    title_sanitized: Optional[str] = None
-    sanitized_summary: Optional[str] = None
+    title_sanitized: str | None = None
+    sanitized_summary: str | None = None
     document_specific_fields: dict[str, Any] = Field(default_factory=dict)
 
     duplicate: DuplicateInfo = Field(default_factory=DuplicateInfo)
@@ -91,4 +91,4 @@ class DocumentFingerprint(BaseModel):
     review: ReviewInfo = Field(default_factory=ReviewInfo)
 
     parse_status: str = "success"
-    error_message_safe: Optional[str] = None
+    error_message_safe: str | None = None
