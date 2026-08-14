@@ -76,7 +76,7 @@ def export_fingerprints_excel(fingerprints: list[DocumentFingerprint], output_di
     df = pd.DataFrame(rows)
 
     # Extra safety: clean all string cells again at dataframe level
-    df = df.applymap(clean_excel_value)
+    df = df.map(clean_excel_value)
 
     file_path = out_dir / "document_report.xlsx"
     df.to_excel(file_path, index=False)
