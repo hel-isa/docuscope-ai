@@ -3,8 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytesseract
-from PIL import Image
 from pdf2image import convert_from_path
+
+from app.config import MAX_IMAGE_PIXELS
+from app.security.resource_guards import configure_pillow_limits, open_image_safely
+
+configure_pillow_limits(MAX_IMAGE_PIXELS)
 
 
 def ocr_image(file_path: str | Path) -> str:
@@ -13,7 +17,7 @@ def ocr_image(file_path: str | Path) -> str:
     if not path.exists():
         raise FileNotFoundError(f"File not found for OCR: {path}")
 
-    img = Image.open(path)
+    img = open_image_safely(path, MAX_IMAGE_PIXELS)
     return pytesseract.image_to_string(img).strip()
 
 

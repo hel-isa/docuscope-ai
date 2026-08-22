@@ -111,7 +111,6 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
-    "streamlit.*",
     "pytesseract.*",
     "openpyxl.*",
 ]

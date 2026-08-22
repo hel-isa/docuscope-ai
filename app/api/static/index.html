@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DocuScope AI — Demo</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --border: #e2e2e6;
+    --text: #1a1a1e;
+    --muted: #6b6b74;
+    --accent: #4f46e5;
+    --accent-fg: #ffffff;
+    --danger: #b3261e;
+    --ok: #1a7f37;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171b;
+      --panel: #202024;
+      --border: #34343a;
+      --text: #ececee;
+      --muted: #9a9aa2;
+      --accent: #818cf8;
+      --accent-fg: #14141a;
+      --danger: #ff6b64;
+      --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 2rem 1.5rem 4rem;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; font-size: 0.9rem; }
+  form {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  input[type="text"] {
+    flex: 1;
+    min-width: 220px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  label.checkbox { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--muted); }
+  button {
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #status { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
+  #status.error { color: var(--danger); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.9rem;
+  }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .file-name { font-weight: 600; }
+  .badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    margin-left: 0.35rem;
+  }
+  .badge.review { color: var(--danger); border-color: var(--danger); }
+  .badge.ok { color: var(--ok); border-color: var(--ok); }
+  .summary { margin: 0.5rem 0 0.3rem; font-size: 0.9rem; }
+  .meta { font-size: 0.78rem; color: var(--muted); }
+  .empty { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DocuScope AI</h1>
+  <p class="subtitle">Local demo — privacy-first hybrid AI document fingerprinting. This runs entirely on this machine; no auth, single operator only.</p>
+
+  <form id="scan-form">
+    <input type="text" id="input-folder" placeholder="/path/to/folder" required />
+    <label class="checkbox"><input type="checkbox" id="use-sqlite" /> Save to SQLite</label>
+    <button type="submit" id="scan-btn">Scan folder</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+const form = document.getElementById("scan-form");
+const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById("results");
+const scanBtn = document.getElementById("scan-btn");
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value ?? "";
+  return div.innerHTML;
+}
+
+function renderResults(fingerprints) {
+  if (!fingerprints.length) {
+    resultsEl.innerHTML = '<p class="empty">No documents were processed.</p>';
+    return;
+  }
+
+  resultsEl.innerHTML = fingerprints.map((fp) => {
+    const reviewBadge = fp.review?.human_review_required
+      ? '<span class="badge review">review required</span>'
+      : '<span class="badge ok">ok</span>';
+    const piiBadge = fp.privacy?.pii_detected
+      ? `<span class="badge">PII: ${escapeHtml((fp.privacy.pii_types || []).join(", "))}</span>`
+      : "";
+    return `
+      <div class="card">
+        <div class="card-head">
+          <span class="file-name">${escapeHtml(fp.file_info?.relative_path)}</span>
+          <span>
+            <span class="badge">${escapeHtml(fp.classification?.label)} (${fp.classification?.confidence ?? "?"})</span>
+            ${piiBadge}
+            ${reviewBadge}
+          </span>
+        </div>
+        <p class="summary">${escapeHtml(fp.sanitized_summary)}</p>
+        <div class="meta">source: ${escapeHtml(fp.classification?.source)} · language: ${escapeHtml(fp.metadata?.language)} · risk flags: ${escapeHtml((fp.risk?.risk_flags || []).join(", ") || "none")}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const inputFolder = document.getElementById("input-folder").value.trim();
+  const useSqlite = document.getElementById("use-sqlite").checked;
+
+  statusEl.className = "";
+  statusEl.textContent = "Scanning…";
+  resultsEl.innerHTML = "";
+  scanBtn.disabled = true;
+
+  try {
+    const response = await fetch("/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input_folder: inputFolder, sqlite: useSqlite }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Request failed with status ${response.status}`);
+    }
+
+    const fingerprints = await response.json();
+    statusEl.textContent = `Processed ${fingerprints.length} document(s).`;
+    renderResults(fingerprints);
+  } catch (err) {
+    statusEl.className = "error";
+    statusEl.textContent = err.message || "Something went wrong.";
+  } finally {
+    scanBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

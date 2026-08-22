@@ -1,1 +1,0 @@
-# TODO: JPEG parser

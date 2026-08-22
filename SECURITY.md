@@ -54,7 +54,9 @@ The following are generally out of scope unless they create a clear, demonstrabl
 - Typographical or documentation errors
 - Feature requests
 - Theoretical issues without a realistic exploit path
-- Denial-of-service requiring unrealistic resources
+- Denial-of-service requiring unrealistic resources (note: single-file resource-exhaustion
+  cases — zip-bomb DOCX/XLSX, PDF page-count bombs, image decompression bombs — are in
+  scope, since these are explicitly mitigated; see `app/security/resource_guards.py`)
 - Vulnerabilities only affecting unsupported code versions
 - Problems in third-party services outside this repository’s control
 
@@ -90,6 +92,26 @@ Because DocuScope AI analyzes documents and may use hybrid or AI-assisted classi
 - Prompt injection and malicious document content should be considered in testing
 - Sanitized outputs should be verified to ensure redaction actually occurred
 - Debugging and error traces should not reveal private document contents
+
+**Implemented mitigations (Anthropic Claude fallback layer, `app/ai/`):**
+
+- The AI layer only ever receives text that has already passed through the
+  privacy/masking layer (`app/privacy/sanitizer.py`) — raw document content is
+  never sent to the model.
+- Document text is wrapped in explicit delimiters with an instruction that it
+  is untrusted data, never instructions to follow (`app/ai/prompts.py`) — the
+  concrete defense against prompt-injection attempts embedded in document
+  content.
+- Every model response is validated against a strict schema before use
+  (`app/ai/schemas.py`); a classification label outside the known document
+  classes, or a malformed response, is rejected rather than trusted.
+- The AI-generated summary is additionally re-scanned with the same PII
+  detector used upstream (`detect_pii`) and rejected if it looks like it
+  contains PII-shaped content — concretely verifying that redaction held,
+  even for output the model produced itself.
+- Any AI-layer failure (unavailable, timeout, invalid response) degrades to
+  the existing deterministic rules/keyword logic; it never crashes document
+  processing or silently returns unvalidated model output.
 
 ## Disclosure Policy
 

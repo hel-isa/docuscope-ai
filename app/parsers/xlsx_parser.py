@@ -4,12 +4,19 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from app.config import MAX_ZIP_UNCOMPRESSED_BYTES
+from app.security.resource_guards import check_zip_container
+
 
 def parse_xlsx(file_path: str | Path) -> dict:
     path = Path(file_path)
 
     if not path.exists():
         raise FileNotFoundError(f"XLSX file not found: {path}")
+
+    # XLSX is a zip container: check for zip-bomb-style expansion before
+    # openpyxl begins decompressing it.
+    check_zip_container(path, MAX_ZIP_UNCOMPRESSED_BYTES)
 
     wb = load_workbook(filename=str(path), read_only=True, data_only=True)
     lines: list[str] = []

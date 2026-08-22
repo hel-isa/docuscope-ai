@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.ai.provider import get_provider
 
-def extract_fields_with_ai_fallback(sanitized_text: str, doc_class: str) -> dict[str, Any]:
+
+def _extract_fields_keyword_fallback(sanitized_text: str, doc_class: str) -> dict[str, Any]:
     """
-    MVP placeholder.
-    Later replace with a real model call.
+    Deterministic fallback used when no AI provider is configured, or when
+    the AI call fails for any reason.
     """
     text = sanitized_text.lower()
     fields: dict[str, Any] = {}
@@ -21,3 +23,15 @@ def extract_fields_with_ai_fallback(sanitized_text: str, doc_class: str) -> dict
             fields["formal_greeting_present"] = True
 
     return fields
+
+
+def extract_fields_with_ai_fallback(sanitized_text: str, doc_class: str) -> dict[str, Any]:
+    provider = get_provider()
+    if provider is None:
+        return _extract_fields_keyword_fallback(sanitized_text, doc_class)
+
+    try:
+        return provider.extract_fields(sanitized_text, doc_class)
+    except Exception:
+        # See app/classify/ai_classifier.py for why this is a broad catch.
+        return _extract_fields_keyword_fallback(sanitized_text, doc_class)
