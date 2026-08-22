@@ -15,17 +15,15 @@ DocuScope AI is a local-first document intelligence project that scans folders a
 
 DocuScope AI started from a personal need: I wanted a way to search through my own files and quickly find specific information without manually opening and reviewing every document one by one.
 
-It also serves as a practical learning project to help me understand how AI can be integrated into software in a useful, structured, and privacy-conscious way. Instead of building a purely theoretical prototype, I wanted to create a real application that combines document parsing, OCR, privacy masking, classification, structured reporting, and a future path toward hybrid AI enrichment.
+It also serves as a practical learning project to help me understand how AI can be integrated into software in a useful, structured, and privacy-conscious way — and to practice building it the way an AppSec-minded engineer would: threat model the AI layer explicitly, guard against malicious/adversarial input, and never let an optional enhancement (AI) compromise the reliability or privacy guarantees of the deterministic core.
 
 ---
 
-## Phase 1 objective
+## Project status
 
-Phase 1 establishes the MVP foundation of DocuScope AI.
+**Phase 1** built the deterministic MVP foundation: folder scanning, parser integration, OCR support, privacy-aware sanitization, rules-based classification, structured export, and automated testing.
 
-The objective of this phase is to build the core pipeline required to process documents locally and safely before introducing real AI capabilities in later phases. This includes folder scanning, parser integration, OCR support, privacy-aware sanitization, rules-based classification, structured export, validation, and automated testing.
-
-Phase 1 is focused on **foundation and reliability**, not advanced AI yet.
+**Phase 2** replaced the AI placeholders with a real, provider-abstracted Anthropic Claude integration, added concrete resource-exhaustion guards against malicious/adversarial documents, and added a local FastAPI demo UI. See [Roadmap](#roadmap) for what's next.
 
 ---
 
@@ -34,12 +32,13 @@ Phase 1 is focused on **foundation and reliability**, not advanced AI yet.
 ```text
 Selected Folder
    -> File Scanner
+   -> Resource Guards (size / zip-bomb / page-count / pixel-count limits)
    -> Parser / OCR
    -> Privacy Redaction Layer
-   -> AI Enrichment Layer
+   -> AI Enrichment Layer (rules-first, Claude fallback on sanitized text only)
         - rules + AI classification
         - rules + AI extraction
-        - AI sanitized summary
+        - AI sanitized summary (PII-checked before use)
    -> Confidence + Review Flag
    -> JSON + Excel Report
    -> Optional SQLite
@@ -47,7 +46,7 @@ Selected Folder
 
 ---
 
-## Phase 1 scope
+## Scope
 
 ### Included
 
@@ -65,23 +64,24 @@ Selected Folder
 * OCR fallback for scanned PDFs
 * file metadata extraction
 * privacy masking and sanitization
-* rules-based classification
-* basic structured extraction
+* rules-based classification, with a real Claude-backed AI fallback
+* structured extraction, with a real Claude-backed AI fallback
+* AI-generated sanitized summaries, with a deterministic template fallback
 * confidence scoring
 * review flagging
+* resource-exhaustion guards (oversized files, zip bombs, PDF page-count bombs, image decompression bombs)
 * JSON export
 * Excel export
 * optional SQLite persistence
-* local Streamlit browser app
-* validation script
-* automated tests
+* local FastAPI demo app
+* automated tests (including adversarial/security-focused fixtures)
 
 ### Not included yet
 
-* real AI model integration
+* NER-based PII detection (names, addresses, free-text PII) — current detection is pattern/regex-based; see [Roadmap](#roadmap)
 * semantic near-duplicate detection
 * advanced signature/stamp detection
-* enterprise-grade access controls
+* enterprise-grade access controls / API authentication
 * production deployment
 * packaged macOS desktop app
 
@@ -93,21 +93,20 @@ Selected Folder
 
 DocuScope AI is designed to avoid exposing sensitive data unnecessarily.
 
-The MVP is built so that:
-
-* sensitive values are masked before reporting
+* sensitive values are masked **before** anything (rules, AI, exports) sees the text
+* the AI fallback layer only ever receives already-sanitized text — raw document content never leaves the deterministic pipeline
+* AI-generated output is itself re-checked for PII-shaped content before being used, verifying that redaction actually held
 * outputs are sanitized
-* the architecture is prepared for AI on sanitized text
 * the project remains local-first by design
 
 ### Hybrid AI design
 
 The system separates:
 
-* deterministic software engineering tasks
-* AI-powered interpretation tasks
+* deterministic software engineering tasks (rules-based classification, regex extraction, template summaries)
+* AI-powered interpretation tasks (an Anthropic Claude fallback, used only when the deterministic path is low-confidence or empty)
 
-Phase 1 includes the structure for hybrid AI, but the real AI integrations will come in later phases.
+The AI layer sits behind a small provider-agnostic interface (`app/ai/provider.py`), so it degrades to the deterministic logic automatically whenever no API key is configured or a call fails — the pipeline never depends on AI to function.
 
 ### Local-first MVP
 
@@ -134,7 +133,7 @@ The project is intentionally built to run locally:
 
 ## Current document classes
 
-Phase 1 supports rules-based classification for:
+Rules-first classification (with an AI fallback) supports:
 
 * `invoice`
 * `receipt`
@@ -154,16 +153,17 @@ For each supported file, DocuScope AI currently:
 
 1. scans the selected folder recursively
 2. identifies supported documents
-3. extracts file metadata
-4. parses text/content
-5. applies OCR when needed
-6. detects basic sensitive data patterns
-7. masks sensitive values
-8. classifies the document
-9. extracts basic structured fields
-10. generates a sanitized fingerprint
-11. computes confidence and review status
-12. exports results to JSON, Excel, and optionally SQLite
+3. rejects files that trip a resource-exhaustion guard (oversized, zip-bomb-shaped, too many PDF pages, decompression-bomb image)
+4. extracts file metadata
+5. parses text/content
+6. applies OCR when needed
+7. detects basic sensitive data patterns
+8. masks sensitive values
+9. classifies the document (rules first, Claude fallback if low-confidence)
+10. extracts structured fields (regex first, Claude fallback if empty)
+11. generates a sanitized fingerprint and summary
+12. computes confidence and review status
+13. exports results to JSON, Excel, and optionally SQLite
 
 ---
 
@@ -173,13 +173,13 @@ DocuScope AI is built to generate **sanitized fingerprints**, not raw document d
 
 Examples of privacy-safe behavior:
 
-* emails are masked
-* phone numbers are masked
-* IDs are masked
+* emails, phone numbers, and IDs are masked before any downstream processing
+* the AI fallback layer never receives raw/unmasked text
+* AI output is validated against a schema and re-scanned for PII-shaped content before use
 * summaries are sanitized
 * reports are intended for structured review, not raw content exposure
 
-Phase 1 is a privacy-aware MVP foundation. Privacy controls will continue to improve in later phases.
+See [SECURITY.md](SECURITY.md) for the full threat model, including prompt-injection and resource-exhaustion mitigations.
 
 ---
 
@@ -189,12 +189,15 @@ Phase 1 is a privacy-aware MVP foundation. Privacy controls will continue to imp
 docuscope-ai/
 │
 ├── app/
-│   ├── main.py
-│   ├── config.py
+│   ├── main.py                # thin CLI entrypoint
+│   ├── pipeline.py            # shared orchestration (scan -> fingerprint -> export), used by CLI and API
+│   ├── config.py              # env-driven settings (.env)
 │   ├── models/
 │   │   └── fingerprint.py
 │   ├── scanner/
 │   │   └── folder_scanner.py
+│   ├── security/
+│   │   └── resource_guards.py # zip-bomb / page-count / pixel-count / file-size guards
 │   ├── parsers/
 │   │   ├── pdf_parser.py
 │   │   ├── docx_parser.py
@@ -209,12 +212,22 @@ docuscope-ai/
 │   │   └── sanitizer.py
 │   ├── classify/
 │   │   ├── rules_classifier.py
-│   │   └── ai_classifier.py
+│   │   ├── ai_classifier.py
+│   │   └── constants.py
 │   ├── extract/
 │   │   ├── regex_extractors.py
 │   │   └── ai_extractor.py
 │   ├── summarize/
 │   │   └── ai_summarizer.py
+│   ├── ai/                    # provider-agnostic AI layer (Anthropic Claude implementation)
+│   │   ├── provider.py
+│   │   ├── anthropic_provider.py
+│   │   ├── prompts.py
+│   │   └── schemas.py
+│   ├── api/                   # local FastAPI demo
+│   │   ├── server.py
+│   │   ├── schemas.py
+│   │   └── static/index.html
 │   ├── confidence/
 │   │   └── scoring.py
 │   ├── export/
@@ -227,7 +240,7 @@ docuscope-ai/
 │
 ├── outputs/
 ├── tests/
-├── streamlit_app.py
+├── .env.example
 ├── requirements.txt
 ├── pytest.ini
 └── README.md
@@ -240,7 +253,7 @@ docuscope-ai/
 ### 1. Create a virtual environment
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -266,6 +279,14 @@ sudo apt-get update
 sudo apt-get install -y tesseract-ocr poppler-utils
 ```
 
+### 4. Configure environment variables
+
+```bash
+cp .env.example .env
+```
+
+Fill in `ANTHROPIC_API_KEY` to enable the real Claude fallback layer. Leaving it empty is fully supported — the pipeline runs entirely on the deterministic rules/regex/template logic, with zero external calls and zero cost.
+
 ---
 
 ## Run locally (CLI)
@@ -282,20 +303,21 @@ python -m app.main --input "/path/to/folder" --output "./outputs" --sqlite
 
 ---
 
-## Run locally (browser app)
+## Run locally (browser demo)
 
-DocuScope AI also includes a local Streamlit app.
+DocuScope AI includes a minimal local FastAPI demo.
 
 ```bash
-streamlit run streamlit_app.py
+uvicorn app.api.server:app --reload
 ```
 
-This provides a simple local browser UI to:
+Then open [http://127.0.0.1:8000](http://127.0.0.1:8000) to:
 
 * enter a folder path
 * run a scan
-* view sanitized results
-* generate outputs
+* view sanitized results (classification, PII flags, summary, review status)
+
+This is a **local, single-operator demo tool** — no authentication is included, and it should not be exposed to a network. See [SECURITY.md](SECURITY.md) for details.
 
 ---
 
@@ -329,37 +351,17 @@ Run verbose tests:
 pytest -v
 ```
 
----
-
-## Phase 1 completion criteria
-
-Phase 1 is complete when:
-
-* required project structure exists
-* required modules exist
-* imports work
-* tests pass
-* scanner works
-* parsers work
-* privacy modules work
-* exports work
-* validation passes
+The suite includes adversarial/security-focused fixtures (zip-bomb-shaped DOCX/XLSX, PDF page-count bombs, image decompression bombs, and a simulated prompt-injection payload) alongside the functional tests. All AI-layer tests mock the Anthropic client — no live API calls are made in CI.
 
 ---
 
 ## Current limitations
 
-Phase 1 is intentionally lightweight.
-
-Current limitations include:
-
-* AI classifier is still a placeholder
-* AI extractor is still a placeholder
-* AI summarizer is still a placeholder
+* NER-based PII detection (names, addresses, free-text PII) is not yet implemented — detection today is pattern/regex-based
 * duplicate detection is exact-hash only
-* PII detection is basic pattern-based
 * language detection is heuristic
 * signature/stamp detection is not fully implemented
+* the FastAPI demo has no authentication (by design, for a local single-operator tool)
 * no production deployment yet
 * no packaged macOS desktop app yet
 
@@ -367,16 +369,10 @@ Current limitations include:
 
 ## Roadmap
 
-### Phase 2
-
-* integrate real AI summarization
-* add real AI classification fallback
-* add real AI extraction fallback
-
 ### Phase 3
 
-* improve privacy rules
-* improve duplicate detection
+* NER-based PII detection (Presidio + spaCy), as an opt-in layer alongside the existing regex detector
+* improve duplicate detection (semantic near-duplicate, not just exact-hash)
 * improve structured extraction
 * improve review workflow
 
@@ -384,7 +380,7 @@ Current limitations include:
 
 * improve local UI
 * package for macOS
-* harden for production scenarios
+* harden for production scenarios (auth, deployment)
 
 ## Author
 

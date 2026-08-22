@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image
-
+from app.config import MAX_IMAGE_PIXELS
 from app.ocr.ocr_service import ocr_image
+from app.security.resource_guards import configure_pillow_limits, open_image_safely
+
+configure_pillow_limits(MAX_IMAGE_PIXELS)
 
 
 def parse_image(file_path: str | Path) -> dict:
@@ -13,7 +15,7 @@ def parse_image(file_path: str | Path) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Image file not found: {path}")
 
-    img = Image.open(path)
+    img = open_image_safely(path, MAX_IMAGE_PIXELS)
     text = ocr_image(path)
 
     return {
