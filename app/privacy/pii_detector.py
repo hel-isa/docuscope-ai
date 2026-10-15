@@ -5,7 +5,7 @@ from typing import Any
 
 
 EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-PHONE_RE = re.compile(r"(?:\+?\d[\d\-\s\(\)]{7,}\d)")
+PHONE_RE = re.compile(r"(?:\+?\d[\d\-\s\(\)]{7,30}\d)")
 DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{2}/\d{2}/\d{4}\b")
 MONEY_RE = re.compile(r"(?:CAD|USD|EUR|\$)\s?\d[\d,]*(?:\.\d{2})?", re.IGNORECASE)
 ID_RE = re.compile(r"\b\d{6,}\b")

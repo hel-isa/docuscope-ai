@@ -43,6 +43,12 @@ def test_detect_pii_finds_expected_types_and_count() -> None:
     assert result["pii_count"] >= 4
 
 
+def test_detect_pii_phone_pattern_is_bounded() -> None:
+    text = "1" + (" " * 10_000) + "2"
+
+    assert detect_pii(text)["phones"] == []
+
+
 def test_sanitize_text_masks_detected_entities() -> None:
     raw = "Email: jane.doe@example.com | Phone: 514-555-1234 | ID: 123456789"
 
